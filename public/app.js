@@ -1519,285 +1519,174 @@ async function createBooking() {
   }
 }
 
-// Pet management helper functions
-function editPet(petId) {
-  // TODO: Implement edit functionality
-  alert(`Edit functionality for pet ${petId} - Coming soon!`);
-}
-
-async function deletePet(petId) {
+// Edit Pet Functions
+async function editPet(petId) {
   if (!authToken) {
     alert("Please login first");
     return;
   }
 
   if (currentUser.role !== "owner") {
-    alert("Only pet owners can delete pets");
+    alert("Only pet owners can edit pets");
     return;
   }
 
-  // Get pet element and name for confirmation
-  const petElement = document.querySelector(`[data-pet-id="${petId}"]`);
-  const petName = petElement ? petElement.dataset.petName : "this pet";
+  try {
+    // Get pet details first
+    const data = await makeRequest(`${API_BASE}/pets/${petId}`);
+    const pet = data.data.pet;
 
-  if (
-    confirm(
-      `Are you sure you want to delete ${petName}? This action cannot be undone.`
-    )
-  ) {
-    // Show loading state immediately
-    const deleteButton = document.querySelector(
-      `button[onclick="deletePet('${petId}')"]`
-    );
-    const originalButtonText = deleteButton ? deleteButton.textContent : "";
+    // Populate the edit form with pet data
+    document.getElementById("editPetId").value = pet._id;
+    document.getElementById("editPetName").value = pet.name || "";
+    document.getElementById("editPetSpecies").value = pet.species || "";
+    document.getElementById("editPetBreed").value = pet.breed || "";
+    document.getElementById("editPetAge").value = pet.age || "";
+    document.getElementById("editPetWeight").value = pet.weight || "";
+    document.getElementById("editPetGender").value = pet.gender || "";
+    document.getElementById("editPetColor").value = pet.color || "";
+    document.getElementById("editPetVaccinated").checked = pet.vaccinated === true;
+    document.getElementById("editPetMicrochipped").checked = pet.microchipped === true;
+    document.getElementById("editPetSpecialNeeds").value = pet.specialNeeds || "";
 
-    if (deleteButton) {
-      deleteButton.disabled = true;
-      deleteButton.textContent = "🗑️ Deleting...";
-      deleteButton.style.opacity = "0.6";
-      deleteButton.style.cursor = "not-allowed";
+    // Show current photos
+    const currentPhotosDiv = document.getElementById("editCurrentPhotos");
+    if (pet.photos && pet.photos.length > 0) {
+      currentPhotosDiv.innerHTML = `
+        <label>Current Photos:</label>
+        <div style="display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap;">
+          ${pet.photos.map((photo, index) => `
+            <div style="position: relative;">
+              <img src="${photo}" alt="Pet photo ${index + 1}" 
+                   style="width: 80px; height: 80px; object-fit: cover; border-radius: 5px; border: 1px solid #e2e8f0;">
+              <button type="button" onclick="removeCurrentPhoto('${petId}', ${index})" 
+                      style="position: absolute; top: -5px; right: -5px; background: #f56565; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer;">
+                ×
+              </button>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    } else {
+      currentPhotosDiv.innerHTML = "<p>No photos currently uploaded.</p>";
     }
 
-    // Add visual feedback to pet element
-    if (petElement) {
-      petElement.style.filter = "brightness(0.7)";
-      petElement.style.pointerEvents = "none";
-    }
+    // Show the edit modal
+    document.getElementById("editPetModal").style.display = "block";
 
-    try {
-      const response = await fetch(`${API_BASE}/pets/${petId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      let data = null;
-
-      // Handle different response types
-      if (response.status === 204) {
-        // No content response - deletion successful
-        data = { status: "success", message: "Pet deleted successfully" };
-      } else {
-        // Try to parse JSON response
-        const responseText = await response.text();
-        if (responseText) {
-          try {
-            data = JSON.parse(responseText);
-          } catch (parseError) {
-            console.error("Failed to parse response:", responseText);
-            throw new Error("Invalid server response format");
-          }
-        } else {
-          data = { status: "success", message: "Pet deleted successfully" };
-        }
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || `HTTP error! status: ${response.status}`
-        );
-      }
-
-      console.log(`✅ Pet ${petName} deleted successfully`);
-
-      // Show success message
-      showResponse("petsResponse", {
-        status: "success",
-        message: `${petName} has been successfully deleted`,
-      });
-
-      // Remove the pet from the DOM immediately with animation
-      if (petElement) {
-        petElement.style.transition = "all 0.3s ease-out";
-        petElement.style.opacity = "0";
-        petElement.style.transform = "scale(0.95)";
-
-        setTimeout(() => {
-          petElement.remove();
-          console.log(`🗑️ Pet element removed from DOM`);
-
-          // Check if there are any pets left and update display
-          const petsListEl = document.getElementById("petsList");
-          const remainingPets = petsListEl.querySelectorAll("[data-pet-id]");
-          console.log(`📊 Remaining pets: ${remainingPets.length}`);
-
-          if (remainingPets.length === 0) {
-            petsListEl.innerHTML =
-              '<p style="text-align: center; color: #718096; padding: 20px;">No pets found. Add your first pet!</p>';
-          }
-        }, 300);
-
-        // Double-check removal after animation
-        setTimeout(() => {
-          ensurePetRemoval(petId);
-        }, 500);
-      } else {
-        console.warn(
-          "⚠️ Pet element not found for immediate removal, will refresh list"
-        );
-        // If element not found, refresh the entire list
-        loadPets();
-      }
-    } catch (error) {
-      console.error("❌ Delete pet error:", error);
-      showResponse(
-        "petsResponse",
-        {
-          error: `Failed to delete pet: ${error.message}`,
-        },
-        true
-      );
-
-      // Reset visual states on error
-      if (petElement) {
-        petElement.style.filter = "";
-        petElement.style.pointerEvents = "";
-      }
-
-      if (deleteButton) {
-        deleteButton.disabled = false;
-        deleteButton.textContent = originalButtonText || "🗑️ Delete";
-        deleteButton.style.opacity = "1";
-        deleteButton.style.cursor = "pointer";
-      }
-    }
+  } catch (error) {
+    alert("Error loading pet details: " + error.message);
   }
 }
 
-// Function to update booking status (for sitters to approve/decline, owners to cancel)
-async function updateBookingStatus(bookingId, newStatus) {
+async function updatePet() {
   if (!authToken) {
     alert("Please login first");
     return;
   }
 
-  // Show confirmation dialog
-  const actionMessages = {
-    confirmed: "confirm this booking",
-    declined: "decline this booking",
-    cancelled: "cancel this booking",
-    in_progress: "start this service",
-    completed: "mark this service as completed",
-  };
-
-  const message = actionMessages[newStatus] || "update this booking";
-  if (!confirm(`Are you sure you want to ${message}?`)) {
+  if (currentUser.role !== "owner") {
+    alert("Only pet owners can update pets");
     return;
   }
 
   try {
-    // Show loading state
-    const buttons = document.querySelectorAll(
-      `button[onclick*="${bookingId}"]`
-    );
-    buttons.forEach((btn) => {
-      btn.disabled = true;
-      btn.style.opacity = "0.6";
-    });
+    const petId = document.getElementById("editPetId").value;
+    const formData = new FormData();
 
-    const response = await fetch(`${API_BASE}/bookings/${bookingId}/status`, {
-      method: "PATCH",
+    // Add form fields
+    formData.append("name", document.getElementById("editPetName").value);
+    formData.append("species", document.getElementById("editPetSpecies").value);
+    formData.append("breed", document.getElementById("editPetBreed").value);
+    formData.append("age", document.getElementById("editPetAge").value);
+    formData.append("weight", document.getElementById("editPetWeight").value);
+    formData.append("gender", document.getElementById("editPetGender").value);
+    formData.append("color", document.getElementById("editPetColor").value);
+    formData.append("vaccinated", document.getElementById("editPetVaccinated").checked);
+    formData.append("microchipped", document.getElementById("editPetMicrochipped").checked);
+    formData.append("specialNeeds", document.getElementById("editPetSpecialNeeds").value);
+
+    // Add new photos if any
+    const photoFiles = document.getElementById("editPetPhotos").files;
+    for (let i = 0; i < photoFiles.length; i++) {
+      formData.append("photos", photoFiles[i]);
+    }
+
+    // Check if user wants to replace all photos
+    const replacePhotos = document.getElementById("editReplacePhotos").checked;
+    if (replacePhotos) {
+      formData.append("replacePhotos", "true");
+    }
+
+    // Show loading state
+    const updateButton = document.querySelector("#editPetModal .btn-primary");
+    const originalText = updateButton.textContent;
+    updateButton.disabled = true;
+    updateButton.textContent = "Updating...";
+
+    const response = await fetch(`${API_BASE}/pets/${petId}`, {
+      method: "PUT",
       headers: {
         Authorization: `Bearer ${authToken}`,
-        "Content-Type": "application/json",
       },
-      body: JSON.stringify({ status: newStatus }),
+      body: formData,
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.message || `HTTP error! status: ${response.status}`);
+      throw new Error(data.message || "Failed to update pet");
     }
 
-    // Show success message
-    const successMessages = {
-      confirmed: "Booking confirmed successfully! 🎉",
-      declined: "Booking declined.",
-      cancelled: "Booking cancelled.",
-      in_progress: "Service started! 🚀",
-      completed: "Service completed! ✅",
-    };
+    // Success - close modal and refresh pets
+    closeEditPetModal();
+    loadPets();
+    alert("Pet updated successfully!");
 
-    showResponse("bookingsResponse", {
-      status: "success",
-      message: successMessages[newStatus] || "Booking updated successfully",
-    });
-
-    // Refresh bookings list to show updated status
-    setTimeout(() => {
-      loadBookings();
-    }, 1000);
   } catch (error) {
-    console.error("Update booking status error:", error);
-    showResponse(
-      "bookingsResponse",
-      {
-        error: `Failed to update booking: ${error.message}`,
+    alert("Error updating pet: " + error.message);
+  } finally {
+    // Reset button state
+    const updateButton = document.querySelector("#editPetModal .btn-primary");
+    if (updateButton) {
+      updateButton.disabled = false;
+      updateButton.textContent = "Update Pet";
+    }
+  }
+}
+
+function closeEditPetModal() {
+  document.getElementById("editPetModal").style.display = "none";
+  
+  // Reset form
+  document.getElementById("editPetForm").reset();
+  document.getElementById("editCurrentPhotos").innerHTML = "";
+}
+
+async function removeCurrentPhoto(petId, photoIndex) {
+  if (!confirm("Are you sure you want to delete this photo?")) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/pets/${petId}/photos/${photoIndex}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${authToken}`,
       },
-      true
-    );
-
-    // Reset button states on error
-    const buttons = document.querySelectorAll(
-      `button[onclick*="${bookingId}"]`
-    );
-    buttons.forEach((btn) => {
-      btn.disabled = false;
-      btn.style.opacity = "1";
     });
-  }
-}
 
-// Helper function to populate booking form with available pets
-async function populateBookingPets() {
-  if (!authToken || currentUser.role !== "owner") return;
-
-  try {
-    const data = await makeRequest(`${API_BASE}/pets`);
-    const petSelect = document.getElementById("bookingPetId");
-    const currentValue = petSelect.value;
-
-    // Create a dropdown-like experience
-    if (data.data.pets.length > 0) {
-      const petsInfo = data.data.pets
-        .map((pet) => `${pet.name} (ID: ${pet._id})`)
-        .join("\n");
-      console.log("Available pets for booking:\n" + petsInfo);
-
-      // Update placeholder with first pet as example
-      const firstPet = data.data.pets[0];
-      petSelect.placeholder = `Example: ${firstPet._id} (${firstPet.name})`;
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.message || "Failed to delete photo");
     }
-  } catch (error) {
-    console.error("Error loading pets for booking:", error);
-  }
-}
 
-// Helper function to show available services
-async function showAvailableServices() {
-  try {
-    const data = await makeRequest(`${API_BASE}/services`);
-    if (data.data && data.data.services && data.data.services.length > 0) {
-      const servicesInfo = data.data.services
-        .map(
-          (service) =>
-            `${service.title} - $${service.price}/${
-              service.priceType || "hour"
-            } (ID: ${service._id})`
-        )
-        .join("\n");
-      console.log("Available services for booking:\n" + servicesInfo);
+    // Refresh the edit form to show updated photos
+    editPet(petId);
+    alert("Photo deleted successfully!");
 
-      // Update placeholder with first service as example
-      const firstService = data.data.services[0];
-      const serviceSelect = document.getElementById("bookingServiceId");
-      serviceSelect.placeholder = `Example: ${firstService._id} (${firstService.title})`;
-    }
   } catch (error) {
-    console.error("Error loading services for booking:", error);
+    alert("Error deleting photo: " + error.message);
   }
 }
 

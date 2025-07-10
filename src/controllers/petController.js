@@ -2,6 +2,59 @@ const Pet = require('../models/Pet');
 const { uploadMultiple, handleUploadError, deleteFile, getFileUrl } = require('../utils/fileUpload');
 const path = require('path');
 
+/**
+ * @swagger
+ * /api/pets:
+ *   get:
+ *     summary: Get all pets for the authenticated user
+ *     tags: [Pets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of pets per page
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [dog, cat, bird, fish, rabbit, hamster, other]
+ *         description: Filter by pet type
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved pets
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 results:
+ *                   type: integer
+ *                   example: 2
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     pets:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Pet'
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *       500:
+ *         description: Internal server error
+ */
 // @desc    Get all pets for the authenticated user
 // @route   GET /api/pets
 // @access  Private (Owner only)
@@ -24,6 +77,44 @@ const getPets = async (req, res, next) => {
   }
 };
 
+/**
+ * @swagger
+ * /api/pets/{id}:
+ *   get:
+ *     summary: Get a specific pet by ID
+ *     tags: [Pets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Pet ID
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved pet
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     pet:
+ *                       $ref: '#/components/schemas/Pet'
+ *       404:
+ *         description: Pet not found
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *       500:
+ *         description: Internal server error
+ */
 // @desc    Get single pet by ID
 // @route   GET /api/pets/:id
 // @access  Private (Owner only)
@@ -53,6 +144,108 @@ const getPet = async (req, res, next) => {
   }
 };
 
+/**
+ * @swagger
+ * /api/pets:
+ *   post:
+ *     summary: Create a new pet
+ *     tags: [Pets]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - type
+ *               - breed
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Pet name
+ *                 example: Buddy
+ *               type:
+ *                 type: string
+ *                 enum: [dog, cat, bird, fish, rabbit, hamster, other]
+ *                 description: Pet type
+ *                 example: dog
+ *               breed:
+ *                 type: string
+ *                 description: Pet breed
+ *                 example: Golden Retriever
+ *               age:
+ *                 type: integer
+ *                 minimum: 0
+ *                 description: Pet age in years
+ *                 example: 3
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, unknown]
+ *                 description: Pet gender
+ *                 example: male
+ *               weight:
+ *                 type: number
+ *                 minimum: 0
+ *                 description: Pet weight in kg
+ *                 example: 30.5
+ *               color:
+ *                 type: string
+ *                 description: Pet color
+ *                 example: golden
+ *               description:
+ *                 type: string
+ *                 description: Pet description
+ *                 example: Friendly and energetic dog
+ *               photos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Pet photos (max 5 files)
+ *               vaccinated:
+ *                 type: boolean
+ *                 description: Vaccination status
+ *                 example: true
+ *               neutered:
+ *                 type: boolean
+ *                 description: Neutering status
+ *                 example: false
+ *               microchipped:
+ *                 type: boolean
+ *                 description: Microchip status
+ *                 example: true
+ *               specialNeeds:
+ *                 type: string
+ *                 description: Special needs or medical conditions
+ *                 example: Allergic to certain foods
+ *     responses:
+ *       201:
+ *         description: Pet created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     pet:
+ *                       $ref: '#/components/schemas/Pet'
+ *       400:
+ *         description: Bad request - Invalid data
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *       413:
+ *         description: Payload too large - File size exceeded
+ *       500:
+ *         description: Internal server error
+ */
 // @desc    Create new pet
 // @route   POST /api/pets
 // @access  Private (Owner only)

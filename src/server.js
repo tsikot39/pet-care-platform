@@ -6,11 +6,15 @@ dotenv.config();
 
 const app = require('./app');
 const connectDB = require('./config/database');
+const logger = require('./config/logger');
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
-  console.log('UNCAUGHT EXCEPTION! 💥 Shutting down...');
-  console.log(err.name, err.message);
+  logger.error('UNCAUGHT EXCEPTION! 💥 Shutting down...', {
+    error: err.name,
+    message: err.message,
+    stack: err.stack
+  });
   process.exit(1);
 });
 
@@ -20,14 +24,18 @@ connectDB();
 const PORT = process.env.PORT || 3000;
 
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
-  console.log(`📊 Health check available at http://localhost:${PORT}/health`);
+  logger.info(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+  logger.info(`📊 Health check available at http://localhost:${PORT}/health`);
+  logger.info(`📖 API Documentation available at http://localhost:${PORT}/api-docs`);
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
-  console.log('UNHANDLED REJECTION! 💥 Shutting down...');
-  console.log(err.name, err.message);
+  logger.error('UNHANDLED REJECTION! 💥 Shutting down...', {
+    error: err.name,
+    message: err.message,
+    stack: err.stack
+  });
   server.close(() => {
     process.exit(1);
   });

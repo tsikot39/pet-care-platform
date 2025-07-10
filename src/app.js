@@ -4,6 +4,11 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const path = require('path');
+const morgan = require('morgan');
+
+// Import configurations
+const logger = require('./config/logger');
+const { swaggerSpec, swaggerUi } = require('./config/swagger');
 
 // Import middleware
 const errorMiddleware = require('./middleware/errorMiddleware');
@@ -55,6 +60,9 @@ app.use(cors({
 // Compression middleware
 app.use(compression());
 
+// HTTP request logging
+app.use(morgan('combined', { stream: logger.stream }));
+
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -65,12 +73,16 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
+  logger.info('Health check endpoint accessed');
   res.status(200).json({
     status: 'success',
     message: 'Pet Care Platform API is running!',
     timestamp: new Date().toISOString()
   });
 });
+
+// API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -82,6 +94,7 @@ app.use('/api/bookings', bookingRoutes);
 app.all('*', (req, res, next) => {
   const error = new Error(`Route ${req.originalUrl} not found`);
   error.statusCode = 404;
+  logger.warn(`Route not found: ${req.method} ${req.originalUrl}`);
   next(error);
 });
 

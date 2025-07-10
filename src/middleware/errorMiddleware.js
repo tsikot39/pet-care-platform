@@ -1,9 +1,17 @@
+const logger = require('../config/logger');
+
 const errorMiddleware = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;
 
-  // Log error for debugging
-  console.error(err);
+  // Log error with Winston
+  logger.error(`Error: ${err.message}`, {
+    stack: err.stack,
+    url: req.originalUrl,
+    method: req.method,
+    ip: req.ip,
+    userAgent: req.get('User-Agent')
+  });
 
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {

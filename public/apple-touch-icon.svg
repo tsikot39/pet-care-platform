@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <!-- Background with rounded corners for iOS -->
+  <rect width="180" height="180" rx="20" ry="20" fill="#4299e1"/>
+  
+  <!-- Paw print design scaled for Apple Touch Icon -->
+  <!-- Main pad -->
+  <ellipse cx="90" cy="115" rx="22" ry="19" fill="#ffffff"/>
+  
+  <!-- Top left toe -->
+  <ellipse cx="65" cy="80" rx="10" ry="14" fill="#ffffff"/>
+  
+  <!-- Top center toe -->
+  <ellipse cx="90" cy="70" rx="10" ry="14" fill="#ffffff"/>
+  
+  <!-- Top right toe -->
+  <ellipse cx="115" cy="80" rx="10" ry="14" fill="#ffffff"/>
+  
+  <!-- Small accent details -->
+  <circle cx="75" cy="100" r="3" fill="#2b6cb0" opacity="0.3"/>
+  <circle cx="105" cy="100" r="3" fill="#2b6cb0" opacity="0.3"/>
+  
+  <!-- Subtle shadow effect -->
+  <ellipse cx="90" cy="118" rx="18" ry="15" fill="#2b6cb0" opacity="0.1"/>
+</svg>

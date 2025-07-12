@@ -2,7 +2,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
 // Helper function to create and send token
-const createSendToken = (user, statusCode, res) => {
+const createSendToken = (user, statusCode, res, message) => {
   const token = user.generateAuthToken();
   
   // Remove password from output
@@ -11,6 +11,7 @@ const createSendToken = (user, statusCode, res) => {
   res.status(statusCode).json({
     status: 'success',
     token,
+    message,
     data: {
       user
     }
@@ -180,9 +181,9 @@ const deleteMe = async (req, res, next) => {
   try {
     await User.findByIdAndUpdate(req.user.id, { isActive: false });
     
-    res.status(204).json({
+    res.status(200).json({
       status: 'success',
-      data: null
+      message: 'Account deactivated successfully'
     });
   } catch (error) {
     next(error);
@@ -229,6 +230,108 @@ const logout = async (req, res, next) => {
   }
 };
 
+// @desc    Reactivate user account
+// @route   PUT /api/auth/reactivate
+// @access  Public (requires email and password)
+/**
+ * @swagger
+ * /api/auth/reactivate:
+ *   put:
+ *     summary: Reactivate a deactivated user account
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: john@example.com
+ *               password:
+ *                 type: string
+ *                 example: password123
+ *     responses:
+ *       200:
+ *         description: Account reactivated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Account reactivated successfully! Welcome back.
+ *                 token:
+ *                   type: string
+ *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Missing email or password
+ *       401:
+ *         description: Invalid password
+ *       404:
+ *         description: No deactivated account found with that email
+ */
+const reactivateAccount = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'Please provide email and password'
+      });
+    }
+    
+    // Find the deactivated user
+    const user = await User.findOne({ 
+      email: email.toLowerCase(),
+      isActive: false 
+    }).select('+password');
+    
+    if (!user) {
+      return res.status(404).json({
+        status: 'fail',
+        message: 'No deactivated account found with that email address'
+      });
+    }
+    
+    // Check password
+    if (!(await user.correctPassword(password, user.password))) {
+      return res.status(401).json({
+        status: 'fail',
+        message: 'Invalid password'
+      });
+    }
+    
+    // Reactivate the account
+    await User.findByIdAndUpdate(user._id, { 
+      isActive: true,
+      updatedAt: new Date()
+    });
+    
+    // Generate new token for the reactivated user
+    const reactivatedUser = await User.findById(user._id);
+    createSendToken(reactivatedUser, 200, res, 'Account reactivated successfully! Welcome back.');
+    
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -237,5 +340,6 @@ module.exports = {
   updatePassword,
   deleteMe,
   forgotPassword,
-  logout
+  logout,
+  reactivateAccount
 };

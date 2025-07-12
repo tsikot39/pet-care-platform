@@ -144,6 +144,11 @@ userSchema.statics.findByCredentials = async function(email, password) {
     throw new Error('Invalid login credentials');
   }
 
+  // Check if account is active
+  if (!user.isActive) {
+    throw new Error('Account is deactivated. Please reactivate your account to continue.');
+  }
+
   return user;
 };
 

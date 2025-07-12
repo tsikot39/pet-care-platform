@@ -494,7 +494,7 @@ function validateLoginForm() {
 }
 
 // Utility Functions
-function showTab(tabName) {
+function showTab(tabName, event = null) {
   // Hide all tab contents
   document.querySelectorAll(".tab-content").forEach((tab) => {
     tab.classList.remove("active");
@@ -508,8 +508,17 @@ function showTab(tabName) {
   // Show selected tab
   document.getElementById(tabName).classList.add("active");
 
-  // Add active class to clicked button
-  event.target.classList.add("active");
+  // Add active class to clicked button (only if called from an event)
+  if (event && event.target) {
+    event.target.classList.add("active");
+  } else {
+    // When called programmatically, find the corresponding tab button
+    // Look for buttons with onclick containing the tab name
+    const tabButton = document.querySelector(`[onclick*="'${tabName}'"]`);
+    if (tabButton) {
+      tabButton.classList.add("active");
+    }
+  }
 }
 
 function showResponse(responseId, data, isError = false) {
@@ -583,6 +592,7 @@ function updateAuthStatus() {
   const authStatusEl = document.getElementById("authStatus");
   const tokenDisplayEl = document.getElementById("tokenDisplay");
   const logoutBtn = document.getElementById("logoutBtn");
+  const accountManagementCard = document.getElementById("accountManagementCard");
 
   if (authToken && currentUser) {
     authStatusEl.innerHTML = `
@@ -592,10 +602,20 @@ function updateAuthStatus() {
     tokenDisplayEl.style.display = "block";
     tokenDisplayEl.textContent = `Token: ${authToken.substring(0, 50)}...`;
     logoutBtn.style.display = "inline-block";
+    
+    // Show account management section when logged in
+    if (accountManagementCard) {
+      accountManagementCard.style.display = "block";
+    }
   } else {
     authStatusEl.textContent = "Not logged in";
     tokenDisplayEl.style.display = "none";
     logoutBtn.style.display = "none";
+    
+    // Hide account management section when not logged in
+    if (accountManagementCard) {
+      accountManagementCard.style.display = "none";
+    }
   }
 }
 
@@ -887,6 +907,11 @@ function logout() {
   currentUser = null;
   localStorage.removeItem("authToken");
   localStorage.removeItem("currentUser");
+  
+  // Hide any open account management forms
+  hideUpdatePasswordForm();
+  hideReactivationForm();
+  
   updateAuthStatus();
   showResponse("authResponse", { message: "Logged out successfully" });
 }
@@ -1687,6 +1712,173 @@ async function removeCurrentPhoto(petId, photoIndex) {
 
   } catch (error) {
     alert("Error deleting photo: " + error.message);
+  }
+}
+
+// Account Management Functions
+async function deactivateAccount() {
+  if (!authToken) {
+    alert("Please login first");
+    return;
+  }
+  
+  const confirmMessage = `Are you sure you want to deactivate your account?
+
+This will:
+• Disable your account login
+• Keep all your data (pets, bookings, services)
+• Allow you to reactivate later with your email and password
+
+This action can be reversed by reactivating your account.`;
+
+  if (confirm(confirmMessage)) {
+    try {
+      const response = await fetch(`${API_BASE}/auth/me`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert("Account deactivated successfully. You will be logged out now.");
+        // Clear auth data and redirect to login
+        logout();
+      } else {
+        const data = await response.json();
+        alert("Error deactivating account: " + data.message);
+      }
+    } catch (error) {
+      alert("Error deactivating account: " + error.message);
+    }
+  }
+}
+
+function showUpdatePasswordForm() {
+  document.getElementById("updatePasswordForm").style.display = "block";
+}
+
+function hideUpdatePasswordForm() {
+  document.getElementById("updatePasswordForm").style.display = "none";
+  // Clear form
+  document.getElementById("currentPassword").value = "";
+  document.getElementById("newPassword").value = "";
+  document.getElementById("confirmNewPassword").value = "";
+}
+
+async function updatePassword() {
+  if (!authToken) {
+    alert("Please login first");
+    return;
+  }
+
+  const currentPassword = document.getElementById("currentPassword").value;
+  const newPassword = document.getElementById("newPassword").value;
+  const confirmNewPassword = document.getElementById("confirmNewPassword").value;
+
+  if (!currentPassword || !newPassword || !confirmNewPassword) {
+    alert("Please fill in all password fields");
+    return;
+  }
+
+  if (newPassword !== confirmNewPassword) {
+    alert("New passwords do not match");
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    alert("New password must be at least 6 characters long");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/auth/updatePassword`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        currentPassword,
+        newPassword
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      alert("Password updated successfully!");
+      hideUpdatePasswordForm();
+      // Update token if provided
+      if (data.token) {
+        authToken = data.token;
+        localStorage.setItem("authToken", authToken);
+      }
+    } else {
+      alert("Error updating password: " + data.message);
+    }
+  } catch (error) {
+    alert("Error updating password: " + error.message);
+  }
+}
+
+function showReactivationForm() {
+  document.getElementById("reactivationForm").style.display = "block";
+}
+
+function hideReactivationForm() {
+  document.getElementById("reactivationForm").style.display = "none";
+  // Clear form
+  document.getElementById("reactivateEmail").value = "";
+  document.getElementById("reactivatePassword").value = "";
+}
+
+async function reactivateAccount() {
+  const email = document.getElementById("reactivateEmail").value;
+  const password = document.getElementById("reactivatePassword").value;
+
+  if (!email || !password) {
+    alert("Please enter both email and password");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/auth/reactivate`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      alert("Account reactivated successfully! Welcome back!");
+      
+      // Auto-login the user
+      authToken = data.token;
+      currentUser = data.data.user;
+      localStorage.setItem("authToken", authToken);
+      localStorage.setItem("currentUser", JSON.stringify(currentUser));
+      
+      updateAuthStatus();
+      hideReactivationForm();
+      
+      // Redirect to Authentication tab to show the reactivated account status
+      showTab('auth');
+      
+      showResponse("authResponse", data);
+    } else {
+      alert("Error reactivating account: " + data.message);
+    }
+  } catch (error) {
+    alert("Error reactivating account: " + error.message);
   }
 }
 

@@ -2,29 +2,39 @@
 
 ## 📖 About The Project
 
-The Pet Care Platform is a comprehensive web application that connects pet owners with professional pet sitters and care providers. This platform serves as a marketplace where pet owners can find trusted caregivers for their beloved pets, while pet sitters can offer their services and build their business.
+The Pet Care Platform is a comprehensive full-stack web application that serves a dual purpose: it's both a functional pet care marketplace and an interactive API testing dashboard. This platform connects pet owners with professional pet sitters and care providers while providing developers and stakeholders with a complete view of the underlying API operations.
 
 ### What It Does
 
+**As a Pet Care Platform:**
 - **For Pet Owners:** Find and book reliable pet care services, manage pet profiles, track service history, and communicate with pet sitters
 - **For Pet Sitters:** Create service listings, manage bookings, build client relationships, and grow their pet care business
 - **For Both:** Secure authentication, real-time booking management, photo sharing, and comprehensive dashboard analytics
 
+**As an API Development & Testing Platform:**
+- **Interactive API Testing:** Real-time JSON response display for all API operations
+- **Developer Dashboard:** Complete visibility into API requests, responses, and data structures
+- **Live Documentation:** See actual API behavior with formatted JSON outputs
+- **Debugging Interface:** Monitor authentication states, error responses, and data flow
+- **Educational Tool:** Perfect for understanding REST API design patterns and full-stack development
+
 ### Key Highlights
 
-This full-stack application demonstrates modern web development practices with a robust Node.js backend API, MongoDB database integration, JWT authentication, and a clean frontend interface. It's designed to handle real-world pet care business operations with scalability and security in mind.
+This application demonstrates modern full-stack development practices with a robust Node.js backend API, MongoDB database integration, JWT authentication, and a comprehensive frontend interface. It's designed to showcase real-world business operations while providing transparent access to all API interactions through JSON response displays, making it ideal for portfolio demonstration, API learning, and development testing.
 
 ## Features
 
 ### 🔐 Authentication & User Management
 
 - User registration and login with JWT authentication
-- Role-based access control (Pet Owners and Pet Sitters)
+- Role-based access control (Pet Owners and Pet Sitters)  
 - Profile management with role-specific fields
 - Password hashing with bcrypt
 - Enhanced validation with real-time feedback
 - Password strength indicator
-- Account deactivation and password reset functionality
+- **Complete account management**: deactivation and reactivation functionality
+- **Password update functionality** with current password verification
+- **Frontend account management interface** with intuitive controls
 
 ### 🐕 Pet Management (For Owners)
 
@@ -295,6 +305,7 @@ The server will start on `http://localhost:8001` (or the port specified in your 
 - `GET /me` - Get current user profile
 - `PUT /me` - Update user profile
 - `PUT /updatePassword` - Update user password
+- `PUT /reactivate` - Reactivate a deactivated account
 - `POST /logout` - Logout user
 - `DELETE /me` - Deactivate user account
 
@@ -477,6 +488,28 @@ The API implements comprehensive error handling with enhanced user feedback:
 - **Field-level Validation**: Instant validation for all form fields
 - **Enhanced Registration**: Improved user registration flow with better UX
 - **Login Enhancements**: Better error handling and user feedback
+- **Complete Account Management**: Frontend interface for account deactivation and reactivation
+- **Password Management**: Secure password update functionality with current password verification
+- **Account Recovery**: Reactivation system for deactivated accounts
+
+### 🐛 Recent Bug Fixes & Stability Improvements
+
+- **Account Deactivation Fix**: Resolved backend response issue where account deactivation wasn't properly logging users out
+- **Login Security Enhancement**: Fixed login bypass vulnerability where deactivated accounts could still log in
+- **Frontend Logout Handling**: Improved logout process to properly clear all authentication states
+- **Reactivation Error Fix**: Fixed JavaScript error "Cannot read properties of undefined (reading 'target')" during account reactivation
+- **Tab Navigation Fix**: Resolved tab highlighting issue when programmatically switching tabs after reactivation
+- **UI State Management**: Enhanced authentication UI to show/hide account management features based on login status
+- **Error Message Clarity**: Improved error messages for deactivated accounts to guide users to reactivation process
+- **Form State Cleanup**: Better form cleanup and validation state management during authentication flows
+
+### 🔧 Security & Stability Enhancements
+
+- **Active Account Validation**: Backend now properly validates account status during login attempts
+- **Proper Error Responses**: Standardized error response format with meaningful HTTP status codes
+- **State Synchronization**: Frontend and backend authentication states now properly synchronized
+- **Event Handler Fixes**: Resolved JavaScript event handling issues in programmatic function calls
+- **Tab Management**: Improved tab switching logic to handle both user clicks and programmatic navigation
 
 ## 🌟 Professional Portfolio Enhancements
 

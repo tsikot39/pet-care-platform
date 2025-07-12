@@ -9,6 +9,7 @@ const router = express.Router();
 router.post('/register', validate(schemas.register), authController.register);
 router.post('/login', validate(schemas.login), authController.login);
 router.post('/forgotPassword', authController.forgotPassword);
+router.put('/reactivate', validate(schemas.login), authController.reactivateAccount);
 
 // Protected routes (require authentication)
 router.use(protect); // All routes after this middleware are protected
